@@ -1,0 +1,242 @@
+---
+title: "Joanna_Lab4"
+author: "Joanna Wright"
+date: "5/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+library(dplyr)
+```
+
+# Writing a summary function:
+Write a function that takes a given data frame as its first argument, a column to summarize as its second argument, and any set of other columns to summary operations by as the third argument. (pass the dots and after, a funs argument that defaults to a list of the functions its going to apply)
+
+## Function behavior:
+By default, the function should report:  
+* Total number of observations  
+* Number of non-missing observations  
+* Number of missing observations  
+* Mean  
+* Standard deviation  
+* Minimum  
+* Maximum  
+
+However, the function should be flexible so it can take any function(s) as its input to summarize by, provided the function results in a single value (e.g., anything you could feed to dplyr::summarize). You’ll need an additional optional argument (should be the last argument in your function) that lists the function(s) to use in the summary. Hint: You’ll want to have this argument pre-populated with default functions.
+
+```{r}
+
+n_fun <- function(data, outcome) {
+  data %>%
+  select(outcome) %>%
+  count()
+}
+
+n_fun(airquality, "Solar.R")
+
+n_valid_fun <- function (data, outcome) {
+  data %>%
+  select(outcome) %>%
+  na.omit() %>%
+  count()
+}
+
+n_valid_fun(airquality, "Solar.R")
+
+n_missing_fun <- function(data, outcome) {
+  data %>%
+  select(outcome) %>%
+  summarise(sum(is.na(.)))
+}
+
+n_missing_fun(airquality, "Solar.R")
+
+mean_fun <- function(data, outcome) { 
+  data %>%
+  na.omit() %>%
+  summarise(mean(outcome))
+}
+
+mean_fun(airquality, "Solar.R")
+
+
+sd_fun <- function(data, outcome) {
+  data %>%
+  na.omit() %>%
+  summarise(sd(outcome))
+}
+
+sd_fun(airquality, "Solar.R")
+
+
+min_fun <- function(data, outcome) {
+  data %>%
+  na.omit() %>%
+  summarise(min = min(outcome))
+}
+
+min_fun(airquality, "Solar.R")
+
+max_fun <- function(data, outcome) {
+  data %>%
+  na.omit() %>%
+  summarise(max = max(outcome))
+}
+
+max_fun(airquality, "Solar.R")
+
+# create a list
+list_tmp <- list(n_fun, n_valid, n_missing, mean_fun, sd_fun, min_fun, max_fun)
+
+# TIPS FROM DA: 
+# use summarise_at to pass the list of functions. 
+# if that works, then you can get it to work in the body of your function 
+
+# but the functions below are not working. problem with list_tmp?
+# summarise_at(airquality, vars(3:4), list_tmp)
+# airquality %>% 
+#  summarise_at( .vars = colnames(.)[3:4] , list_tmp)
+
+
+# 3rd argument: list of functions. loop through those functions to apply them to the 2nd column
+# function(data, outcome, list_tmp) ??? 
+
+
+
+```
+
+### Errors:  
+Embed an error if:  
+Anything other than a data frame is supplied as the first argument.  
+The provided column to summarize is not numeric. 
+
+```{r}
+
+# EXAMPLE ERROR MESSAGE EXAMPLE FROM SLIDES 
+both_na <- function(x, y) {
+    if(length(x) != length(y)) {
+        v_lngths <- paste0("x = ", length(x), ", y = ", length(y))
+        stop("Vectors are of different lengths:", v_lngths)
+    }
+    sum(is.na(x) & is.na(y))
+}
+both_na(a, c(b, b))
+
+```
+
+### Warnings:  
+Embed a warning if:  
+Any of the grouping variable(s) are numeric (generally you would expect the grouping variable to be a categorical variable)  
+
+```{r}
+
+#EXAMPLE WARNING MESSAGE FROM SLIDES
+#Modify your prior code to so it runs, but returns a warning, if the vectors are recyclable, and otherwise returns a meaningful error message.
+
+#Hint 1: You'll need two conditions
+
+# Hint 2: Check if a number is fractional with %%, which returns the remainder in a division problem. So 8 %% 2 and 8 %% 4 both return zero (because there is no remainder), while and 7 %% 2 returns 1 and 7 %% 4 returns 3.
+
+both_na <- function(x, y) {
+    if(length(x) != length(y)) {
+        lx <- length(x)
+        ly <- length(y)
+        v_lngths <- paste0("x = ", lx, ", y = ", ly)
+        if(lx %% ly == 0 | ly %% lx == 0) {
+            warning("Vectors were recycled (", v_lngths, ")")
+        }
+        else {
+            stop("Vectors are of different lengths and are not recyclable:",
+                 v_lngths)    
+        }
+    }
+    sum(is.na(x) & is.na(y))
+}
+
+```
+
+
+### Some guidance:  
+If you want to use {dplyr} you’ll need to use non-standard evaluation (NSE), so either something like !!enquo(group_var), where group_var is the formal argument of your function, or {{group_var}}. Also, dplyr::pull (together with NSE) will likely be helpful for checking types for warnings/errors.
+
+Alternatively, you might consider spliting the dataset by the grouping variable, then looping over each split to apply the function(s) supplied.
+
+
+```{r}
+# other random notes/examples
+
+# ways to specify return:
+
+add_two.1 <- function(x) {
+    result <- x + 2
+    result
+}
+
+add_two.2 <- function(x) {
+    x + 2
+}
+
+add_two.3 <- function(x) {
+    result <- x + 2
+    return(result)
+}
+
+# example function
+lm_model <- function(data, outcome) {
+  lm(data[[outcome]] ~ data[["total_cases"]])
+}
+# testing it on one category, "parks": 
+lm_model(d, "parks") %>% 
+  return()
+
+
+# incomplete template? 
+function_name <- function(arg1, arg2) {
+  data %>%
+    summarize(min = min(col),
+              max = max(col),
+              mean = mean(col),
+              sd = sd(col),
+    mutate_if(is.numeric, round, 2)
+    )
+}
+
+
+# originals: 
+
+n <- airquality %>%
+  select(Solar.R) %>%
+  count()
+
+n_valid <- airquality %>%
+  select(Solar.R) %>%
+  na.omit() %>%
+  count()
+
+n_missing <- airquality %>%
+  select(Solar.R) %>%
+  summarise(sum(is.na(.)))
+
+mean <- airquality %>%
+  na.omit() %>%
+  summarise(mean(Solar.R))
+
+sd <- airquality %>%
+  na.omit() %>%
+  summarise(sd(Solar.R))
+
+min <- airquality %>%
+  na.omit() %>%
+  summarise(min = min(Solar.R))
+
+max <- airquality %>%
+  na.omit() %>%
+  summarise(max = max(Solar.R))
+
+
+# 3rd argument: list of functions. loop through those functions to apply them to the 2nd column
+```
+
