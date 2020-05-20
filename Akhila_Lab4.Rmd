@@ -1,0 +1,91 @@
+---
+title: "Lab4"
+author: "Akhila Nekkanti"
+date: "5/19/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+#parsed <- rmarkdown::parse_html_notebook("lab4.html")
+#str(parsed)
+```
+
+# Writing a summary function:
+Write a function that takes a given data frame as its first argument, a column to summarize as its second argument, and any set of other columns to summary operations by as the third argument.
+
+## Function behavior:
+By default, the function should report:  
+* Total number of observations  
+* Number of non-missing observations  
+* Number of missing observations  
+* Mean  
+* Standard deviation  
+* Minimum  
+* Maximum  
+
+
+
+
+arguments- dataset, column name, grouping variable(s) as a list
+look into the function summarise_at
+
+?summarise_at
+```{r}
+library(tidyverse)
+View(mtcars)
+View(airquality)
+
+#total observations
+n <- airquality %>% 
+  select(Solar.R) %>% 
+  count()
+
+#total non-missing
+n_valid <- airquality %>% 
+  select(Solar.R) %>% 
+  na.omit() %>% 
+  count()
+n_valid
+
+#total missing
+n_missing <- airquality %>% 
+  select(Solar.R) %>% 
+  summarise(sum(is.na(.)))
+
+### next step is to create a new object that is a list of all the above, use summarise_at to create the list of the functions we need
+
+##actual function is 3 lines of code
+
+function(data, result_var, ...) {
+  
+}
+
+
+
+
+
+
+#function
+df_numeric <- function(df) {
+    df[ ,map_lgl(df, is.numeric)]
+}  
+
+```
+
+
+### Errors:  
+Embed an error if:  
+Anything other than a data frame is supplied as the first argument.  
+The provided column to summarize is not numeric.  
+### Warnings:  
+Embed a warning if:  
+Any of the grouping variable(s) are numeric (generally you would expect the grouping variable to be a categorical variable)  
+
+### Some guidance:  
+If you want to use {dplyr} you’ll need to use non-standard evaluation (NSE), so either something like !!enquo(group_var), where group_var is the formal argument of your function, or {{group_var}}. Also, dplyr::pull (together with NSE) will likely be helpful for checking types for warnings/errors.
+
+Alternatively, you might consider spliting the dataset by the grouping variable, then looping over each split to apply the function(s) supplied.
+
