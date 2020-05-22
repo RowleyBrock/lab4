@@ -29,13 +29,39 @@ However, the function should be flexible so it can take any function(s) as its i
 
 ```{r}
 
+f1 <- function(x) {
+  n <- length(x)
+  z <- na.omit(x)
+  n_valid <- length(z)
+  mean <- mean(z)
+  sd <- sd(z)
+  min <- min(z)
+  max <- max(z)
+  return(list(c(n = n, 
+                     n_valid =n_valid, 
+                     mean=mean,
+                     sd=sd,
+                     min=min,
+                     max=max)))
+}
+
+
+f1(airquality$Solar.R)
+
+tmp <- summarise_at(mtcars, vars(mpg, hp), f1)
+
+```
+
+
+```{r creating list of functions }
+
 n_fun <- function(data, outcome) {
   data %>%
   select(outcome) %>%
   count()
 }
-
 n_fun(airquality, "Solar.R")
+
 
 n_valid_fun <- function (data, outcome) {
   data %>%
@@ -43,50 +69,48 @@ n_valid_fun <- function (data, outcome) {
   na.omit() %>%
   count()
 }
-
 n_valid_fun(airquality, "Solar.R")
+
 
 n_missing_fun <- function(data, outcome) {
   data %>%
   select(outcome) %>%
   summarise(sum(is.na(.)))
 }
-
 n_missing_fun(airquality, "Solar.R")
 
-mean_fun <- function(data, outcome) { 
-  data %>%
-  na.omit() %>%
-  summarise(mean(outcome))
-}
 
-mean_fun(airquality, "Solar.R")
+mean_fun <- function(data, outcome) {
+  data %>%
+  summarise(mean(outcome, na.rm = TRUE))
+}
+mean_fun(airquality, airquality$Solar.R)
 
 
 sd_fun <- function(data, outcome) {
   data %>%
-  na.omit() %>%
-  summarise(sd(outcome))
+  summarise(sd(outcome, na.rm = TRUE))
 }
-
-sd_fun(airquality, "Solar.R")
+sd_fun(airquality, airquality$Solar.R)
 
 
 min_fun <- function(data, outcome) {
   data %>%
-  na.omit() %>%
-  summarise(min = min(outcome))
+  min(outcome, na.rm = TRUE)
 }
+min_fun(airquality, airquality$Solar.R)
 
-min_fun(airquality, "Solar.R")
 
 max_fun <- function(data, outcome) {
   data %>%
-  na.omit() %>%
-  summarise(max = max(outcome))
+ max(outcome, na.rm = TRUE)
 }
+max_fun(airquality, airquality$Solar.R)
 
-max_fun(airquality, "Solar.R")
+```
+
+
+
 
 # create a list
 list_tmp <- list(n_fun, n_valid, n_missing, mean_fun, sd_fun, min_fun, max_fun)
@@ -95,14 +119,8 @@ list_tmp <- list(n_fun, n_valid, n_missing, mean_fun, sd_fun, min_fun, max_fun)
 # use summarise_at to pass the list of functions. 
 # if that works, then you can get it to work in the body of your function 
 
-# but the functions below are not working. problem with list_tmp?
-# summarise_at(airquality, vars(3:4), list_tmp)
-# airquality %>% 
-#  summarise_at( .vars = colnames(.)[3:4] , list_tmp)
-
-
 # 3rd argument: list of functions. loop through those functions to apply them to the 2nd column
-# function(data, outcome, list_tmp) ??? 
+
 
 
 
@@ -205,38 +223,7 @@ function_name <- function(arg1, arg2) {
 }
 
 
-# originals: 
-
-n <- airquality %>%
-  select(Solar.R) %>%
-  count()
-
-n_valid <- airquality %>%
-  select(Solar.R) %>%
-  na.omit() %>%
-  count()
-
-n_missing <- airquality %>%
-  select(Solar.R) %>%
-  summarise(sum(is.na(.)))
-
-mean <- airquality %>%
-  na.omit() %>%
-  summarise(mean(Solar.R))
-
-sd <- airquality %>%
-  na.omit() %>%
-  summarise(sd(Solar.R))
-
-min <- airquality %>%
-  na.omit() %>%
-  summarise(min = min(Solar.R))
-
-max <- airquality %>%
-  na.omit() %>%
-  summarise(max = max(Solar.R))
-
 
 # 3rd argument: list of functions. loop through those functions to apply them to the 2nd column
-```
+
 
