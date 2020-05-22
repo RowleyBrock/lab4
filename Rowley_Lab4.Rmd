@@ -34,6 +34,58 @@ The provided column to summarize is not numeric.
 ### Warnings:  
 Embed a warning if:  
 Any of the grouping variable(s) are numeric (generally you would expect the grouping variable to be a categorical variable)  
+```{r sum_fun}
+# smry <- list(n = length, 
+#              n_miss = function(x) sum(is.na(x)),
+#              n_valid = function(x) sum(!is.na(x)),
+#              mean = mean, 
+#              sd = sd)
+
+# summarize_col <- function(column) {
+#   map_df(smry, ~.x(column))
+#}
+
+# summarize_df <- function(df) {
+#   map_df(df, summarize_col, .id = "column")
+# }
+
+summarize_cols <- function(data, ...) {
+    data %>%
+        select(...) %>%
+        pivot_longer(everything(), names_to = "var", values_to = "val") %>%
+        group_by(var) %>%
+        summarize(mean = mean(val, na.rm = TRUE),
+                  sd = sd(val, na.rm = TRUE),
+                  min = min(val, na.rm = TRUE),
+                  max = max(val, na.rm = TRUE))
+}
+
+my_mean <- function(x) {
+	if(any(is.na(x))) {
+		tot_na <- sum(is.na(x))
+		warning(tot_na, " observations removed due to missingness")
+		x <- na.omit(x)
+	}
+	sum(x) / length(x)
+}
+
+df_summary <- function(df, as_tibble = TRUE) {
+	df_num <- df_numeric(df)
+	means <- purrr::map_dbl(df_num, my_mean)
+	sds <- purrr::map_dbl(df_num, sd, na.rm = TRUE)
+
+	if(as_tibble) {
+		tbl <- tibble::tibble(variable = names(df_num),
+		                      mean = means,
+		                      sd = sds)
+	} else {
+		tbl <- data.frame(variable = names(df_num),
+		                  mean = means,
+		                  sd = sds)
+	}
+	tbl
+}
+```
 
 ### Some guidance:  
 If you want to use {dplyr} you’ll need to use non-standard evaluation (NSE), so either something like !!enquo(group_var), where group_var is the formal argument of your function, or {{group_var}}. Also, dplyr::pull (together with NSE) will likely be helpful for checking types for warnings/errors.
