@@ -60,6 +60,38 @@ smy_fun <- function(data, outcome) {
 tmp1 <- smy_fun(iris, "Sepal.Width")
 # this acheives the same result as line 51! (tmp and tmp1 are the same)
 
+smy_fun1 <- function(data, outcome, grp) {
+  data %>%
+    group_by({{grp}}) %>%
+    summarise_at(vars({{outcome}}), funs(listof_fun))
+} 
+
+smy_fun1(iris, "Sepal.Width", iris$Species)
+
+smy_fun2 <- function(data, outcome, grp) {
+  data %>%
+    group_by({{grp}}) %>%
+    summarise_at(vars({{outcome}}), funs(listof_fun)) %>%
+    unnest(-1)
+} 
+
+smy_fun2(iris, "Sepal.Width", iris$Species)
+# it runs. and is more or less working. but we need to know what is the mean, sd, min, max, etc. Why is that not here? Do we need to pivot farther up in the code? I think the problem might be at the beginning with return() on line 42... 
+
+# going to keep building out the function anyways, but need to resolve that problem. 
+
+# next step: one of our arguments is supposed to be the functions. so...  But we want it to default to our original list, so I'll leave that as is. Below, functs should be optional, so if it's blank, it defaults. so it should look the same as smy_fun2 above. 
+
+smy_fun3 <- function(data, outcome, grp, functs) {
+  data %>%
+    group_by({{grp}}) %>%
+    summarise_at(vars({{outcome}}), funs(listof_fun)) %>%
+    unnest(-1)
+} 
+
+smy_fun3(iris, "Sepal.Width", iris$Species, )
+# yep! it's the same. 
+
 
 ```
 
