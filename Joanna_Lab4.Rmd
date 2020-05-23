@@ -30,68 +30,29 @@ However, the function should be flexible so it can take any function(s) as its i
 
 ```{r}
 
-# create a list of functions 
-listof_fun <- function(x) {
-  n <- length(x)
-  z <- na.omit(x)
-  n_valid <- length(z)
-  mean <- mean(z)
-  sd <- sd(z)
-  min <- min(z)
-  max <- max(z) 
-  return(tibble(c(n = n, 
-                     n_valid =n_valid, 
-                     mean=mean,
-                     sd=sd,
-                     min=min,
-                     max=max)))
+listof_fun <- list(
+  n = function(x) length(x),
+  n_valid = function(x) sum(!is.na(x)),
+  mean = function(x) mean(x),
+  sd = function(x) sd(x),
+  min = function(x) min(x),
+  max = function(x) max(x)
+)
+
+
+smry_function <- function(df, outcome, ..., .fun = list(n = function(x) length(x),
+                                             n_valid = function(x) sum(!is.na(x)),
+                                             mean = function(x) mean(x),
+                                             sd = function(x) sd(x),
+                                             min = function(x) min(x),
+                                             max = function(x) max(x))) {
+  df %>% 
+    group_by(...) %>% 
+    summarise_at(vars({{outcome}}), .funs = .fun)
 }
 
-# does this list work using summarise_at()?: 
-tmp <- iris %>% summarise_at(vars(Sepal.Length), funs(listof_fun))
-
-# now need to wrap it in a function: 
-smy_fun <- function(data, outcome) {
-  data %>%
-    summarise_at(vars(outcome), funs(listof_fun))
-} 
-
-# test
-tmp1 <- smy_fun(iris, "Sepal.Width")
-# this acheives the same result as line 51! (tmp and tmp1 are the same)
-
-smy_fun1 <- function(data, outcome, grp) {
-  data %>%
-    group_by({{grp}}) %>%
-    summarise_at(vars({{outcome}}), funs(listof_fun))
-} 
-
-smy_fun1(iris, "Sepal.Width", iris$Species)
-
-smy_fun2 <- function(data, outcome, grp) {
-  data %>%
-    group_by({{grp}}) %>%
-    summarise_at(vars({{outcome}}), funs(listof_fun)) %>%
-    unnest(-1)
-} 
-
-smy_fun2(iris, "Sepal.Width", iris$Species)
-# it runs. and is more or less working. but we need to know what is the mean, sd, min, max, etc. Why is that not here? Do we need to pivot farther up in the code? I think the problem might be at the beginning with return() on line 42... 
-
-# going to keep building out the function anyways, but need to resolve that problem. 
-
-# next step: one of our arguments is supposed to be the functions. so...  But we want it to default to our original list, so I'll leave that as is. Below, functs should be optional, so if it's blank, it defaults. so it should look the same as smy_fun2 above. 
-
-smy_fun3 <- function(data, outcome, grp, functs) {
-  data %>%
-    group_by({{grp}}) %>%
-    summarise_at(vars({{outcome}}), funs(listof_fun)) %>%
-    unnest(-1)
-} 
-
-smy_fun3(iris, "Sepal.Width", iris$Species, )
-# yep! it's the same. 
-
+f(gss_cat, tvhours, marital, race, rincome, relig, .fun = list(mean, median))
+gss_cat
 
 ```
 
@@ -156,125 +117,70 @@ Alternatively, you might consider spliting the dataset by the grouping variable,
 
 ```{r}
 
-# other random notes/examples, incomplete, please ignore :) 
+# create a list of functions 
+# listof_fun <- function(x) {
+#   n <- length(x)
+#   z <- na.omit(x)
+#   n_valid <- length(z)
+#   mean <- mean(z)
+#   sd <- sd(z)
+#   min <- min(z)
+#   max <- max(z) 
+#   return(as.tibble(c(n = n, 
+#                      n_valid =n_valid, 
+#                      mean=mean,
+#                      sd=sd,
+#                      min=min,
+#                      max=max)))
+# }
 
-# ways to specify return:
+# does this list work using summarise_at()?: 
+tmp <- iris %>% 
+  summarise_at(vars(Sepal.Length), .funs = listof_fun)
 
-add_two.1 <- function(x) {
-    result <- x + 2
-    result
-}
-
-add_two.2 <- function(x) {
-    x + 2
-}
-
-add_two.3 <- function(x) {
-    result <- x + 2
-    return(result)
-}
-
-# example function
-lm_model <- function(data, outcome) {
-  lm(data[[outcome]] ~ data[["total_cases"]])
-}
-# testing it on one category, "parks": 
-lm_model(d, "parks") %>% 
-  return()
-
-
-# incomplete template? 
-function_name <- function(arg1, arg2) {
+# now need to wrap it in a function: 
+smy_fun <- function(data, outcome) {
   data %>%
-    summarize(min = min(col),
-              max = max(col),
-              mean = mean(col),
-              sd = sd(col),
-    mutate_if(is.numeric, round, 2)
-    )
-}
+    summarise_at(vars(outcome), funs(listof_fun))
+} 
 
+# test
+tmp1 <- smy_fun(iris, "Sepal.Width")
+# this acheives the same result as line 51! (tmp and tmp1 are the same, which is what we want.)
 
-
-# 3rd argument: list of functions. loop through those functions to apply them to the 2nd column
-
-
-f1 <- function(x) {
-  n <- length(x)
-  z <- na.omit(x)
-  n_valid <- length(z)
-  mean <- mean(z)
-  sd <- sd(z)
-  min <- min(z)
-  max <- max(z)
-  return(list(c(n = n, 
-                     n_valid =n_valid, 
-                     mean=mean,
-                     sd=sd,
-                     min=min,
-                     max=max)))
-}
-
-
-f1(airquality$Solar.R)
-
-n_fun <- function(data, outcome) {
+# add argument for columns to group by: 
+smy_fun1 <- function(data, outcome, grp) {
   data %>%
-  select(outcome) %>%
-  count()
-}
-n_fun(airquality, "Solar.R")
+    group_by({{grp}}) %>%
+    summarise_at(vars({{outcome}}), funs(listof_fun))
+} 
+#test: 
+smy_fun1(iris, "Sepal.Width", iris$Species)
 
-
-n_valid_fun <- function (data, outcome) {
+# need to unnest to see the actual data
+smy_fun2 <- function(data, outcome, grp) {
   data %>%
-  select(outcome) %>%
-  na.omit() %>%
-  count()
-}
-n_valid_fun(airquality, "Solar.R")
+    group_by({{grp}}) %>%
+    summarise_at(vars({{outcome}}), funs(listof_fun)) %>%
+    unnest(-1)
+} 
+#test: 
+smy_fun2(iris, "Sepal.Width", iris$Species)
+# it runs. and is more or less working. but we need to know which one is which for the mean, sd, min, max, etc. Why is that not here? Do we need to pivot farther up in the code? I think the problem might be at the beginning with return() on line 42... 
 
+# going to keep building out the function anyways, but need to resolve that problem. 
 
-n_missing_fun <- function(data, outcome) {
+# next step: one of our arguments is supposed to be the functions. so...  But we want it to default to our original list, so I'll leave that as is. Below, functs should be optional, so if it's blank, it defaults. so it should look the same as smy_fun2 above. 
+
+smy_fun3 <- function(data, outcome, grp, functs) {
   data %>%
-  select(outcome) %>%
-  summarise(sum(is.na(.)))
-}
-n_missing_fun(airquality, "Solar.R")
+    group_by({{grp}}) %>%
+    summarise_at(vars({{outcome}}), funs(listof_fun)) %>%
+    unnest(-1)
+} 
 
-
-mean_fun <- function(data, outcome) {
-  data %>%
-  summarise(mean(outcome, na.rm = TRUE))
-}
-mean_fun(airquality, airquality$Solar.R)
-
-
-sd_fun <- function(data, outcome) {
-  data %>%
-  summarise(sd(outcome, na.rm = TRUE))
-}
-sd_fun(airquality, airquality$Solar.R)
-
-
-min_fun <- function(data, outcome) {
-  data %>%
-  min(outcome, na.rm = TRUE)
-}
-min_fun(airquality, airquality$Solar.R)
-
-
-max_fun <- function(data, outcome) {
-  data %>%
- max(outcome, na.rm = TRUE)
-}
-max_fun(airquality, airquality$Solar.R)
-
-# TIPS FROM DA: 
-# use summarise_at to pass the list of functions. 
-# if that works, then you can get it to work in the body of your function 
-
-# 3rd argument: list of functions. loop through those functions to apply them to the 2nd column
+smy_fun3(iris, "Sepal.Width", iris$Species, )
+# yep! it's the same. 
 
 
 
