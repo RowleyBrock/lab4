@@ -1,0 +1,611 @@
+---
+title: "Fun Programming Lab 4"
+author: "Stephanie Gluck"
+date: "5/20/2020"
+output: html_document
+---
+
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+
+# Writing a summary function:
+Write a function that takes a given data frame as its first argument, a column to summarize as its second argument, and any set of other columns to summary operations by as the third argument.
+
+## Function behavior:
+By default, the function should report:  
+* Total number of observations  
+* Number of non-missing observations  
+* Number of missing observations  
+* Mean  
+* Standard deviation  
+* Minimum  
+* Maximum  
+However, the function should be flexible so it can take any function(s) as its input to summarize by, provided the function results in a single value (e.g., anything you could feed to dplyr::summarize). You’ll need an additional optional argument (should be the last argument in your function) that lists the function(s) to use in the summary. Hint: You’ll want to have this argument pre-populated with default functions.
+
+```{r summary_function}
+
+
+listof_fun <- list(
+  n = function(x) length(x),
+  n_valid = function(x) sum(!is.na(x)),
+  mean = function(x) mean(x, na.rm = TRUE),
+  sd = function(x) sd(x, na.rm = TRUE),
+  min = function(x) min(x, na.rm = TRUE),
+  max = function(x) max(x, na.rm = TRUE)
+)
+
+
+smry_function <- function(df, outcome, ..., .fun = list(n = function(x) length(x),
+                                             n_valid = function(x) sum(!is.na(x)),
+                                             mean = function(x) mean(x),
+                                             sd = function(x) sd(x),
+                                             min = function(x) min(x),
+                                             max = function(x) max(x))) {
+  df %>% 
+    group_by(...) %>% 
+    summarise_at(vars({{outcome}}), .funs = .fun)
+}
+
+smry_function(iris, Sepal.Width, Species)
+
+
+
+smry_function2 <- function(df, outcome, ..., .fun = listof_fun
+) {
+  library(dplyr)
+  df %>% 
+    group_by(...) %>% 
+    summarise_at(vars({{outcome}}), .funs = .fun)
+}
+
+smry_function2(iris, Sepal.Width, Species)
+
+smry_function2(airquality, Ozone, Month)
+
+
+```
+
+
+### Errors:  
+Embed an error if:  
+Anything other than a data frame is supplied as the first argument.  
+The provided column to summarize is not numeric.  
+
+```{r}
+is.data.frame(iris)
+
+
+is_df <- function(x) {
+    if(is.data.frame(x)) {
+        v_lngths <- paste0(x)
+        stop("Vectors are of different lengths:", x)
+    }
+  is.na(x)
+}
+is_df(iris)
+
+
+both_na <- function(x, y) {
+    if(length(x) != length(y)) {
+        v_lngths <- paste0("x = ", length(x), ", y = ", length(y))
+        stop("Vectors are of different lengths:", v_lngths)
+    }
+    sum(is.na(x) & is.na(y))
+}
+both_na(a, c(b, b))
+
+
+```
+
+
+### Warnings:  
+Embed a warning if:  
+Any of the grouping variable(s) are numeric (generally you would expect the grouping variable to be a categorical variable)  
+
+### Some guidance:  
+If you want to use {dplyr} you’ll need to use non-standard evaluation (NSE), so either something like !!enquo(group_var), where group_var is the formal argument of your function, or {{group_var}}. Also, dplyr::pull (together with NSE) will likely be helpful for checking types for warnings/errors.
+
+Alternatively, you might consider spliting the dataset by the grouping variable, then looping over each split to apply the function(s) supplied.
+
+
+### Extra Notes 
+
+Stephanie comment: these were codes that helped our group get to the final codes for lab 4. I am keeping them here as notes to myself for record keeping purpose to help with understanding our thought process for the lab. 
+
+
+```{r notes, eval = FALSE}
+
+#function(data, results_var, ...){}
+
+# Start with how we'd obtain summaries usind dplyr or base R for one dataset and column of interest 
+
+n <- airquality %>%
+  select(Solar.R) %>%
+  count()
+
+n
+
+n_valid <- airquality %>%
+  select(Solar.R) %>%
+  na.omit() %>%
+  count()
+
+n_valid
+
+n_missing <- airquality %>%
+  select(Solar.R) %>%
+  summarise(sum(is.na(.)))
+
+n_missing
+
+mean1 <- airquality %>%
+  na.omit() %>%
+  summarise(mean(Solar.R))
+
+sd <- airquality %>%
+  na.omit() %>%
+  summarise(sd(Solar.R))
+
+sd
+
+min <- airquality %>%
+  na.omit() %>%
+  summarise(min = min(Solar.R))
+
+min
+
+max <- airquality %>%
+  na.omit() %>%
+  summarise(max = max(Solar.R))
+
+max
+
+# generalize the above to be function for any dataset
+
+# can add curly bracket for NSE of the outcome if don't want to have to add quote mark to your outcome variable. 
+n_fun <- function(data, outcome) {
+  data %>%
+  select({{outcome}}) %>%
+  count()
+}
+
+n_fun(airquality, Solar.R)
+
+# if no curly bracket around outcome, then have to use quote marks on your outcome variable. 
+# n_valid_fun <- function (data, outcome) {
+#   data %>%
+#   select(outcome) %>%
+#   na.omit() %>%
+#   count()
+# }
+
+n_valid_fun <- function (data, ...) {
+  data %>%
+  select(...) %>%
+  na.omit() %>%
+  count()
+}
+
+n_valid_fun(airquality, Solar.R)
+
+n_missing_fun <- function(data, ...) {
+  data %>%
+  select(...) %>%
+  summarise(sum(is.na(.)))
+}
+
+n_missing_fun(airquality, Solar.R)
+
+mean_fun <- function(data, outcome) { 
+  data %>%
+  na.omit() %>%
+  summarise(mean({{outcome}}))
+}
+
+mean_fun(airquality, Solar.R)
+
+
+sd_fun <- function(data, outcome) {
+  data %>%
+  na.omit() %>%
+  summarise(sd({{outcome}}))
+}
+
+sd_fun(airquality, Solar.R)
+
+
+min_fun <- function(data, outcome) {
+  data %>%
+  na.omit() %>%
+  summarise(min = min({{outcome}}))
+}
+
+min_fun(airquality, Solar.R)
+
+max_fun <- function(data, outcome) {
+  data %>%
+  na.omit() %>%
+  summarise(max = max({{outcome}}))
+}
+
+max_fun(airquality, Solar.R)
+
+# using summarise_at 
+# summarise the list of columns of dataframe
+library(dplyr)
+summarise_at(mtcars, vars(mpg, hp), list(mean = mean, median = median))
+
+
+# TIPS FROM DA: 
+# use summarise_at to pass the list of functions. 
+# if that works, then you can get it to work in the body of your function 
+# 3rd argument: list of functions. loop through those functions to apply them to the 2nd column
+```
+
+
+
+
+### Errors:  
+Embed an error if:  
+Anything other than a data frame is supplied as the first argument.  
+The provided column to summarize is not numeric. 
+
+```{r}
+
+# EXAMPLE ERROR MESSAGE EXAMPLE FROM SLIDES 
+both_na <- function(x, y) {
+    if(length(x) != length(y)) {
+        v_lngths <- paste0("x = ", length(x), ", y = ", length(y))
+        stop("Vectors are of different lengths:", v_lngths)
+    }
+    sum(is.na(x) & is.na(y))
+}
+both_na(a, c(b, b))
+
+```
+
+### Warnings:  
+Embed a warning if:  
+Any of the grouping variable(s) are numeric (generally you would expect the grouping variable to be a categorical variable)  
+
+```{r}
+
+#EXAMPLE WARNING MESSAGE FROM SLIDES
+#Modify your prior code to so it runs, but returns a warning, if the vectors are recyclable, and otherwise returns a meaningful error message.
+
+#Hint 1: You'll need two conditions
+
+# Hint 2: Check if a number is fractional with %%, which returns the remainder in a division problem. So 8 %% 2 and 8 %% 4 both return zero (because there is no remainder), while and 7 %% 2 returns 1 and 7 %% 4 returns 3.
+
+both_na <- function(x, y) {
+    if(length(x) != length(y)) {
+        lx <- length(x)
+        ly <- length(y)
+        v_lngths <- paste0("x = ", lx, ", y = ", ly)
+        if(lx %% ly == 0 | ly %% lx == 0) {
+            warning("Vectors were recycled (", v_lngths, ")")
+        }
+        else {
+            stop("Vectors are of different lengths and are not recyclable:",
+                 v_lngths)    
+        }
+    }
+    sum(is.na(x) & is.na(y))
+}
+
+```
+
+
+
+```{r}
+
+# create a list of functions 
+# listof_fun <- function(x) {
+#   n <- length(x)
+#   z <- na.omit(x)
+#   n_valid <- length(z)
+#   mean <- mean(z)
+#   sd <- sd(z)
+#   min <- min(z)
+#   max <- max(z) 
+#   return(as.tibble(c(n = n, 
+#                      n_valid =n_valid, 
+#                      mean=mean,
+#                      sd=sd,
+#                      min=min,
+#                      max=max)))
+# }
+
+# does this list work using summarise_at()?: 
+iris %>% 
+  summarise_at(vars(Sepal.Length), .funs = listof_fun)
+
+# now need to wrap it in a function: 
+smy_fun <- function(data, outcome) {
+  data %>%
+    summarise_at(vars(outcome), funs(listof_fun))
+} 
+
+# test
+tmp1 <- smy_fun(iris, "Sepal.Width")
+# this acheives the same result as line 51! (tmp and tmp1 are the same, which is what we want.)
+
+# add argument for columns to group by: 
+smy_fun1 <- function(data, outcome, grp) {
+  data %>%
+    group_by({{grp}}) %>%
+    summarise_at(vars({{outcome}}), funs(listof_fun))
+} 
+#test: 
+smy_fun1(iris, "Sepal.Width", iris$Species)
+
+# need to unnest to see the actual data
+smy_fun2 <- function(data, outcome, grp) {
+  data %>%
+    group_by({{grp}}) %>%
+    summarise_at(vars({{outcome}}), funs(listof_fun)) %>%
+    unnest(-1)
+} 
+#test: 
+smy_fun2(iris, "Sepal.Width", iris$Species)
+# it runs. and is more or less working. but we need to know which one is which for the mean, sd, min, max, etc. Why is that not here? Do we need to pivot farther up in the code? I think the problem might be at the beginning with return() on line 42... 
+
+# going to keep building out the function anyways, but need to resolve that problem. 
+
+# next step: one of our arguments is supposed to be the functions. so...  But we want it to default to our original list, so I'll leave that as is. Below, functs should be optional, so if it's blank, it defaults. so it should look the same as smy_fun2 above. 
+
+smy_fun3 <- function(data, outcome, grp, functs) {
+  data %>%
+    group_by({{grp}}) %>%
+    summarise_at(vars({{outcome}}), funs(listof_fun)) %>%
+    unnest(-1)
+} 
+
+smy_fun3(iris, "Sepal.Width", iris$Species, )
+# yep! it's the same. 
+
+
+
+```
+
+### Errors:  
+Embed an error if:  
+Anything other than a data frame is supplied as the first argument.  
+The provided column to summarize is not numeric. 
+
+```{r}
+
+# EXAMPLE ERROR MESSAGE EXAMPLE FROM SLIDES 
+both_na <- function(x, y) {
+    if(length(x) != length(y)) {
+        v_lngths <- paste0("x = ", length(x), ", y = ", length(y))
+        stop("Vectors are of different lengths:", v_lngths)
+    }
+    sum(is.na(x) & is.na(y))
+}
+both_na(a, c(b, b))
+
+```
+
+### Warnings:  
+Embed a warning if:  
+Any of the grouping variable(s) are numeric (generally you would expect the grouping variable to be a categorical variable)  
+
+```{r}
+
+#EXAMPLE WARNING MESSAGE FROM SLIDES
+#Modify your prior code to so it runs, but returns a warning, if the vectors are recyclable, and otherwise returns a meaningful error message.
+
+#Hint 1: You'll need two conditions
+
+# Hint 2: Check if a number is fractional with %%, which returns the remainder in a division problem. So 8 %% 2 and 8 %% 4 both return zero (because there is no remainder), while and 7 %% 2 returns 1 and 7 %% 4 returns 3.
+
+both_na <- function(x, y) {
+    if(length(x) != length(y)) {
+        lx <- length(x)
+        ly <- length(y)
+        v_lngths <- paste0("x = ", lx, ", y = ", ly)
+        if(lx %% ly == 0 | ly %% lx == 0) {
+            warning("Vectors were recycled (", v_lngths, ")")
+        }
+        else {
+            stop("Vectors are of different lengths and are not recyclable:",
+                 v_lngths)    
+        }
+    }
+    sum(is.na(x) & is.na(y))
+}
+
+```
+
+
+### Some guidance:  
+If you want to use {dplyr} you’ll need to use non-standard evaluation (NSE), so either something like !!enquo(group_var), where group_var is the formal argument of your function, or {{group_var}}. Also, dplyr::pull (together with NSE) will likely be helpful for checking types for warnings/errors.
+
+Alternatively, you might consider spliting the dataset by the grouping variable, then looping over each split to apply the function(s) supplied.
+
+
+```{r}
+# other random notes/examples
+
+# ways to specify return:
+
+add_two.1 <- function(x) {
+    result <- x + 2
+    result
+}
+
+add_two.2 <- function(x) {
+    x + 2
+}
+
+add_two.3 <- function(x) {
+    result <- x + 2
+    return(result)
+}
+
+# example function
+lm_model <- function(data, outcome) {
+  lm(data[[outcome]] ~ data[["total_cases"]])
+}
+# testing it on one category, "parks": 
+lm_model(d, "parks") %>% 
+  return()
+
+
+# incomplete template? 
+function_name <- function(arg1, arg2) {
+  data %>%
+    summarize(min = min(col),
+              max = max(col),
+              mean = mean(col),
+              sd = sd(col),
+    mutate_if(is.numeric, round, 2)
+    )
+}
+
+
+
+
+
+# 3rd argument: list of functions. loop through those functions to apply them to the 2nd column
+```
+
+>>>>>>> Stashed changes
+
+
+```{r}
+
+library(dplyr)
+mtcars
+ 
+# summarise the list of columns of dataframe
+summarise_at(mtcars, vars(mpg, hp), list(mean = mean, median = median))
+
+
+
+
+
+
+```
+
+
+```{r}
+
+f1 <- function(x) {
+  n <- length(x)
+  z <- na.omit(x)
+  n_valid <- length(z)
+  mean <- mean(z)
+  sd <- sd(z)
+  min <- min(z)
+  max <- max(z)
+  
+  return(as.data.frame(c(n =n, n_valid =n_valid, mean=mean,sd=sd,min=min,max=max)))
+}
+f1(airquality$Solar.R)
+
+
+
+test <- summarise_at(mtcars, vars(mpg, hp), f1)
+
+
+
+
+```
+
+
+```{r}
+n_fun <- function(data, outcome) {
+  data %>%
+  select(outcome) %>%
+  count()
+}
+
+n_fun(airquality, "Solar.R")
+
+n_valid_fun <- function (data, outcome) {
+  data %>%
+  select(outcome) %>%
+  na.omit() %>%
+  count()
+}
+
+n_valid_fun(airquality, "Solar.R")
+
+n_missing_fun <- function(data, outcome) {
+  data %>%
+  select(outcome) %>%
+  summarise(sum(is.na(.)))
+}
+
+n_missing_fun(airquality, "Solar.R")
+
+mean_fun <- function(data, outcome) { 
+  data %>%
+  summarise(mean = mean(outcome, na.rm = TRUE))
+}
+
+mean_fun(airquality, airquality$Solar.R)
+mean_fun(airquality, "Solar.R")
+
+
+sd_fun <- function(data, outcome) {
+  data %>%
+  na.omit() %>%
+  summarise(sd(outcome))
+}
+
+sd_fun(airquality, "Solar.R")
+
+
+min_fun <- function(data, outcome) {
+  data %>%
+  na.omit() %>%
+  summarise(min = min(outcome))
+}
+
+min_fun(airquality, "Solar.R")
+
+max_fun <- function(data, outcome) {
+  data %>%
+  na.omit() %>%
+  summarise(max = max(outcome))
+}
+
+max_fun(airquality, "Solar.R")
+
+# create a list
+list_tmp <- list(n_fun, n_valid, n_missing, mean_fun, sd_fun, min_fun, max_fun)
+
+```
+
+
+
+```{r}
+
+
+
+
+
+```
+
+
+want to loop through the second column 
+
+... is group by 
+want to group by all these variables and summarize them 
+apply function from your list 
+
+df, group by , summarize (but summarize is dynamic and apply a bunch of function from a list)
+
+summarize_at
+
+?summarize_at
+
+pass a list of functions w summarize_at 
+
