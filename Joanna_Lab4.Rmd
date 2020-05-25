@@ -5,11 +5,10 @@ date: "5/20/2020"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include=FALSE, error=TRUE}
+knitr::opts_chunk$set(echo = TRUE, warning = TRUE)
 library(tidyverse)
-library(here)
-library(dplyr)
+
 ```
 
 # Writing a summary function:
@@ -41,9 +40,9 @@ smry_function <- function(df, outcome, ..., .fun = list(n = function(x) length(x
 }
 
 # testing it out: 
-smry_function(gss_cat, tvhours, marital, race, rincome, relig)
-smry_function(gss_cat, tvhours, marital, .fun = list(mean, sd))
-smry_function(airquality, Solar.R, Month, .fun = list(mean))
+# smry_function(gss_cat, tvhours, marital, race, rincome, relig)
+# smry_function(gss_cat, tvhours, marital, .fun = list(mean, sd))
+# smry_function(airquality, Solar.R, Month, .fun = list(mean))
 
 ```
 
@@ -80,18 +79,26 @@ smry_function <- function(df, outcome, ..., .fun = list(n = function(x) length(x
     summarise_at(vars({{outcome}}), .funs = .fun)
 }
 
-#test for df 
-smry_function(smry_function, tvhours, marital)
-
-#test for outcome numeric
-smry_function(gss_cat, marital, tvhours)
-
-#test for grouping variable categorical 
-smry_function(gss_cat, tvhours, age) # this one doesn't work yet? 
-
-gss_cat
-
 ```
+
+
+Test for df error message: not a data frame 
+```{r}
+smry_function(smry_function, tvhours, marital)
+```
+
+
+Test for outcome error message: outcome variable not numeric 
+```{r}
+smry_function(gss_cat, marital, tvhours)
+```
+
+
+Test for warning message: grouping variable not categorical
+```{r}
+smry_function(gss_cat, tvhours, age) # this one doesn't work yet? 
+```
+
 
 ```{r improving error and warning messages}
 
