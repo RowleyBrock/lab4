@@ -46,7 +46,7 @@ smry_function <- function(df, outcome, ..., .fun = list(n = function(x) length(x
 
 ```
 
-### Errors and warning: 
+### Errors and warnings: 
 
 Embed an error if:  
 Anything other than a data frame is supplied as the first argument.  
@@ -96,7 +96,7 @@ smry_function(gss_cat, marital, tvhours)
 
 Test for warning message: grouping variable not categorical
 ```{r}
-smry_function(gss_cat, tvhours, age) # this one doesn't work yet? 
+smry_function(gss_cat, tvhours, age) 
 ```
 
 
@@ -114,30 +114,41 @@ smry_function2 <- function(df, outcome, ..., .fun = list(n = function(x) length(
   outcome_name <- deparse(substitute(outcome))
   grouping_name <- deparse(substitute(...))
             if(!is.data.frame(df)) { 
-            stop(df_name, " is not a data frame")
+            stop("Object '", df_name, "' is not a data frame")
             } 
             if(!is.numeric(pull(df, {{outcome}}))) {
-            stop(outcome_name, " is not numeric")
+            stop("Object '", outcome_name, "' is not numeric")
             }
             if(is.numeric(pull(df, ...))) {
-            warning(grouping_name, " Grouping variables are not categorical")
+            warning("Grouping variable '", grouping_name, "' not categorical")
             }
   df %>% 
     group_by(...) %>% 
     summarise_at(vars({{outcome}}), .funs = .fun)
 }
 
+```
 
+Test for df error message: not a data frame 
+```{r}
 smry_function2(mean, tvhours, marital)
-
-smry_function2(gss_cat, marital, tvhours)
-
-smry_function2(gss_cat, tvhours, age, relig) # not working 
 
 ```
 
 
+Test for outcome error message: outcome variable not numeric 
+```{r}
+smry_function2(gss_cat, marital, tvhours)
 
+```
+
+
+Test for warning message: grouping variable not categorical
+```{r}
+smry_function2(gss_cat, tvhours, age) 
+# Remaining question: this works when only one grouping variable argument is supplied. But when we try to add two grouping variables, we run into an error. 
+
+```
 
 
 
