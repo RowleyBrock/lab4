@@ -5,9 +5,10 @@ date: "5/19/2020"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include=FALSE, error=TRUE}
+knitr::opts_chunk$set(echo = TRUE, warning = TRUE)
 
+library(tidyverse)
 ```
 
 
@@ -16,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Write a function that takes a given data frame as its first argument, a column to summarize as its second argument, and any set of other columns to summary operations by as the third argument.
 
 
-```{r final-function, eval=FALSE, include=TRUE}
+```{r final-function, eval=TRUE, include=TRUE}
 
 descriptives <- function(df, outcome, ..., .fun = list(n = function(x) length(x),
                                              n_valid = function(x) sum(!is.na(x)),
@@ -33,7 +34,7 @@ descriptives <- function(df, outcome, ..., .fun = list(n = function(x) length(x)
                stop(df_name, " is not a data frame")
             } 
   
-            if(!is.numeric(pull(df, {{outcome}}))) {
+            if(!is.numeric(pull(df, {{outcome}}))) {  ## only works with {{ }}
               
                stop(outcome_name, " is not numeric")
             }
@@ -44,23 +45,51 @@ descriptives <- function(df, outcome, ..., .fun = list(n = function(x) length(x)
             }
  
   df %>% 
-    group_by(...) %>% 
-    summarise_at(vars({{outcome}}), .funs = .fun)
+    group_by(...) %>%  ##doesn't work with {{ }}
+    summarise_at(vars({{outcome}}), 
+                 .funs = .fun)
 }
 
+```
 
-library(tidyverse)
-#test for df 
+
+Test for non-df error
+```{r echo=TRUE, warning=TRUE, error=TRUE}
+
 descriptives(mean, tvhours, marital)
 
-#test for outcome numeric
-descriptives(gss_cat, marital, tvhours)
-
-#test for grouping variable categorical 
-descriptives(gss_cat, tvhours, age)
-
-
 ```
+
+
+
+Test for non-numeric outcome error
+```{r error=TRUE}
+descriptives(gss_cat, marital, tvhours)
+```
+
+
+
+Test for non-categorical grouping variable warning
+```{r}
+descriptives(gss_cat, tvhours, age)
+```
+
+
+Test function without errors
+```{r}
+descriptives(gss_cat, tvhours, marital)
+```
+
+
+
+Test function with specific calls not working
+```{r error=TRUE}
+descriptives(gss_cat, tvhours, marital, .fun = list(~n_valid(.),
+                                                    ~n_missing(.)))
+```
+
+
+
 
 
 

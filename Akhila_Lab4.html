@@ -387,7 +387,7 @@ summary {
                stop(df_name, &quot; is not a data frame&quot;)
             } 
   
-            if(!is.numeric(pull(df, {{outcome}}))) {
+            if(!is.numeric(pull(df, {{outcome}}))) {  ## only works with {{ }}
               
                stop(outcome_name, &quot; is not numeric&quot;)
             }
@@ -398,20 +398,49 @@ summary {
             }
  
   df %&gt;% 
-    group_by(...) %&gt;% 
-    summarise_at(vars({{outcome}}), .funs = .fun)
-}
-
-
-library(tidyverse)
-#test for df 
-descriptives(mean, tvhours, marital)
-
-#test for outcome numeric
-descriptives(gss_cat, marital, tvhours)
-
-#test for grouping variable categorical 
-descriptives(gss_cat, tvhours, age)</code></pre>
+    group_by(...) %&gt;%  ##doesn&#39;t work with {{ }}
+    summarise_at(vars({{outcome}}), 
+                 .funs = .fun)
+}</code></pre>
+<p>Test for non-df error</p>
+<pre class="r"><code>descriptives(mean, tvhours, marital)</code></pre>
+<pre><code>## Error in descriptives(mean, tvhours, marital): mean is not a data frame</code></pre>
+<p>Test for non-numeric outcome error</p>
+<pre class="r"><code>descriptives(gss_cat, marital, tvhours)</code></pre>
+<pre><code>## Error in descriptives(gss_cat, marital, tvhours): marital is not numeric</code></pre>
+<p>Test for non-categorical grouping variable warning</p>
+<pre class="r"><code>descriptives(gss_cat, tvhours, age)</code></pre>
+<pre><code>## Warning in descriptives(gss_cat, tvhours, age): Grouping variables are not
+## categorical</code></pre>
+<pre><code>## # A tibble: 73 x 8
+##      age     n n_valid n_missing  mean    sd   min   max
+##    &lt;int&gt; &lt;int&gt;   &lt;int&gt;     &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt; &lt;int&gt;
+##  1    18    91      46        45  2.43  2.31     0    13
+##  2    19   249     135       114  2.84  2.71     0    17
+##  3    20   251     141       110  2.66  2.30     0    12
+##  4    21   278     157       121  3.20  3.17     0    24
+##  5    22   298     185       113  3.03  2.21     0    12
+##  6    23   361     184       177  2.90  2.81     0    20
+##  7    24   344     178       166  2.88  2.80     0    18
+##  8    25   396     205       191  2.62  2.53     0    20
+##  9    26   400     196       204  2.43  2.10     0    12
+## 10    27   385     206       179  2.95  3.19     0    24
+## # ... with 63 more rows</code></pre>
+<p>Test function without errors</p>
+<pre class="r"><code>descriptives(gss_cat, tvhours, marital)</code></pre>
+<pre><code>## # A tibble: 6 x 8
+##   marital           n n_valid n_missing  mean    sd   min   max
+##   &lt;fct&gt;         &lt;int&gt;   &lt;int&gt;     &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt; &lt;int&gt;
+## 1 No answer        17       9         8  2.56  1.13     1     4
+## 2 Never married  5416    2995      2421  3.11  2.86     0    24
+## 3 Separated       743     393       350  3.55  3.60     0    24
+## 4 Divorced       3383    1768      1615  3.09  2.73     0    24
+## 5 Widowed        1807    1000       807  3.91  2.90     0    24
+## 6 Married       10117    5172      4945  2.65  2.11     0    24</code></pre>
+<p>Test function with specific calls not working</p>
+<pre class="r"><code>descriptives(gss_cat, tvhours, marital, .fun = list(~n_valid(.),
+                                                    ~n_missing(.)))</code></pre>
+<pre><code>## Error in n_valid(.): could not find function &quot;n_valid&quot;</code></pre>
 </div>
 
 
