@@ -41,17 +41,19 @@ listof_fun <- list(
 
 smry_function <- function(df, outcome, ..., .fun = list(n = function(x) length(x),
                                              n_valid = function(x) sum(!is.na(x)),
-                                             mean = function(x) mean(x),
-                                             sd = function(x) sd(x),
-                                             min = function(x) min(x),
-                                             max = function(x) max(x))) {
+                                             n_missing = function(x) sum(is.na(x)),
+                                             mean = function(x) mean(x, na.rm = TRUE),
+                                             sd = function(x) sd(x, na.rm = TRUE),
+                                             min = function(x) min(x, na.rm = TRUE),
+                                             max = function(x) max(x, na.rm = TRUE))) {
   df %>% 
     group_by(...) %>% 
     summarise_at(vars({{outcome}}), .funs = .fun)
 }
 
-smry_function(iris, Sepal.Width, Species)
+smry_function(gss_cat, tvhours, relig, race)
 
+smry_function(iris, Sepal.Width, Species)
 
 
 smry_function2 <- function(df, outcome, ..., .fun = listof_fun
@@ -63,8 +65,8 @@ smry_function2 <- function(df, outcome, ..., .fun = listof_fun
 }
 
 smry_function2(iris, Sepal.Width, Species)
-
 smry_function2(airquality, Ozone, Month)
+
 
 
 ```
@@ -75,8 +77,108 @@ Embed an error if:
 Anything other than a data frame is supplied as the first argument.  
 The provided column to summarize is not numeric.  
 
+
+```{r errors_warning}
+
+smry_function <- function(df, outcome, ..., .fun = list(n = function(x) length(x),
+                                             n_valid = function(x) sum(!is.na(x)),
+                                             mean = function(x) mean(x, na.rm = TRUE),
+                                             sd = function(x) sd(x, na.rm = TRUE),
+                                             min = function(x) min(x, na.rm = TRUE),
+                                             max = function(x) max(x, na.rm = TRUE))) {
+  library(dplyr)
+            if(!is.data.frame(df)) { 
+            stop("Object is not a data frame")
+            } 
+            if(!is.numeric(pull(df, {{outcome}}))) {
+            stop("Outcome is not numeric")
+            }
+            if(is.numeric(pull(df, ...))) {
+            warning("Grouping variables are not categorical")
+            }
+  df %>% 
+    group_by(...) %>% 
+    summarise_at(vars({{outcome}}), .funs = .fun)
+}
+
+#test for df 
+smry_function(smry_function, tvhours, marital)
+
+#test for outcome numeric
+smry_function(gss_cat, marital, tvhours)
+
+#test for grouping variable categorical 
+smry_function(gss_cat, tvhours, age)
+
+```
+
+
+```{r}
+smry_function2 <- function(df, outcome, ..., .fun = list(n = function(x) length(x),
+                                             n_valid = function(x) sum(!is.na(x)),
+                                             mean = function(x) mean(x, na.rm = TRUE),
+                                             sd = function(x) sd(x, na.rm = TRUE),
+                                             min = function(x) min(x, na.rm = TRUE),
+                                             max = function(x) max(x, na.rm = TRUE))) {
+  library(dplyr)
+  df_name <- deparse(substitute(df))
+  outcome_name <- deparse(substitute(outcome))
+  grouping_name <- deparse(substitute(...))
+            if(!is.data.frame(df)) { 
+            stop(df_name, " is not a data frame")
+            } 
+            if(!is.numeric(pull(df, {{outcome}}))) {
+            stop(outcome_name, " is not numeric")
+            }
+            if(is.numeric(pull(df, ...))) {
+            warning(grouping_name, " Grouping variables are not categorical")
+            }
+  df %>% 
+    group_by(...) %>% 
+    summarise_at(vars({{outcome}}), .funs = .fun)
+}
+
+
+smry_function2(mean, tvhours, marital)
+
+smry_function2(gss_cat, marital, tvhours)
+
+smry_function2(gss_cat, tvhours, age, relig)
+
+
+.df_name <- paste0(iris)
+
+df_name <- deparse(substitute(iris))
+?deparse
+?substitute
+
+
+```
+
+
+
 ```{r}
 is.data.frame(iris)
+
+
+tmp_fun <- function(df, outcome, ..., .fun = list(n = function(x) length(x),
+                                             n_valid = function(x) sum(!is.na(x)),
+                                             mean = function(x) mean(x),
+                                             sd = function(x) sd(x),
+                                             min = function(x) min(x),
+                                             max = function(x) max(x))) {
+            if(is.data.frame(df) == FALSE) { 
+            stop("Object is not a data frame")
+            } 
+            if(is.numeric(outcome) == FALSE) { 
+            stop("Outcome is not numeric")
+            } 
+  df %>% 
+    group_by(...) %>% 
+    summarise_at(vars({{outcome}}), .funs = .fun)
+}
+
+
 
 
 is_df <- function(x) {
