@@ -51,10 +51,8 @@ smry_function <- function(df, outcome, ..., .fun = list(n = function(x) length(x
     summarise_at(vars({{outcome}}), .funs = .fun)
 }
 
-f(gss_cat, tvhours, marital, race, rincome, relig, .fun = list(mean, median))
+smry_function(gss_cat, tvhours, marital, race, rincome, relig, .fun = list(mean, median))
 gss_cat
-
-```
 
 ```
 
@@ -65,17 +63,27 @@ The provided column to summarize is not numeric.
 
 ```{r}
 
-# EXAMPLE ERROR MESSAGE EXAMPLE FROM SLIDES 
-both_na <- function(x, y) {
-    if(length(x) != length(y)) {
-        v_lngths <- paste0("x = ", length(x), ", y = ", length(y))
-        stop("Vectors are of different lengths:", v_lngths)
-    }
-    sum(is.na(x) & is.na(y))
+tmp_fun <- function(df, outcome, ..., .fun = list(n = function(x) length(x),
+                                             n_valid = function(x) sum(!is.na(x)),
+                                             mean = function(x) mean(x),
+                                             sd = function(x) sd(x),
+                                             min = function(x) min(x),
+                                             max = function(x) max(x))) {
+            if(is.data.frame(df) == FALSE) { 
+            stop("Object is not a data frame")
+            } 
+            if(is.numeric(outcome) == FALSE) { 
+            stop("Outcome is not numeric")
+            } 
+  df %>% 
+    group_by(...) %>% 
+    summarise_at(vars({{outcome}}), .funs = .fun)
 }
-both_na(a, c(b, b))
+
+# but something not working here
 
 ```
+
 
 ### Warnings:  
 Embed a warning if:  
@@ -83,28 +91,29 @@ Any of the grouping variable(s) are numeric (generally you would expect the grou
 
 ```{r}
 
-#EXAMPLE WARNING MESSAGE FROM SLIDES
-#Modify your prior code to so it runs, but returns a warning, if the vectors are recyclable, and otherwise returns a meaningful error message.
-
-#Hint 1: You'll need two conditions
-
-# Hint 2: Check if a number is fractional with %%, which returns the remainder in a division problem. So 8 %% 2 and 8 %% 4 both return zero (because there is no remainder), while and 7 %% 2 returns 1 and 7 %% 4 returns 3.
-
-both_na <- function(x, y) {
-    if(length(x) != length(y)) {
-        lx <- length(x)
-        ly <- length(y)
-        v_lngths <- paste0("x = ", lx, ", y = ", ly)
-        if(lx %% ly == 0 | ly %% lx == 0) {
-            warning("Vectors were recycled (", v_lngths, ")")
-        }
-        else {
-            stop("Vectors are of different lengths and are not recyclable:",
-                 v_lngths)    
-        }
-    }
-    sum(is.na(x) & is.na(y))
+tmp_fun2 <- function(df, outcome, ..., .fun = list(n = function(x) length(x),
+                                             n_valid = function(x) sum(!is.na(x)),
+                                             mean = function(x) mean(x),
+                                             sd = function(x) sd(x),
+                                             min = function(x) min(x),
+                                             max = function(x) max(x))) {
+            if(is.data.frame(df) == FALSE) { 
+            stop("Object is not a data frame")
+            } 
+            if(is.numeric(outcome) == FALSE) { 
+            stop("Outcome is not numeric")
+            } 
+            if(is.numeric(...) == TRUE) { 
+            warning("Grouping variables are not categorical")
+            } 
+  df %>% 
+    group_by(...) %>% 
+    summarise_at(vars({{outcome}}), .funs = .fun)
 }
+
+# if(condition1 && condition2) { expression } # AND 
+# if(condition1 || condition2) { expression } # OR 
+
 
 ```
 
