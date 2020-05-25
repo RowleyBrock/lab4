@@ -7,36 +7,133 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(tidyverse)
-library(here)
-#parsed <- rmarkdown::parse_html_notebook("lab4.html")
-#str(parsed)
+
 ```
+
+
 
 # Writing a summary function:
 Write a function that takes a given data frame as its first argument, a column to summarize as its second argument, and any set of other columns to summary operations by as the third argument.
 
-## Function behavior:
-By default, the function should report:  
-* Total number of observations  
-* Number of non-missing observations  
-* Number of missing observations  
-* Mean  
-* Standard deviation  
-* Minimum  
-* Maximum  
+
+```{r final-function, eval=FALSE, include=TRUE}
+
+descriptives <- function(df, outcome, ..., .fun = list(n = function(x) length(x),
+                                             n_valid = function(x) sum(!is.na(x)),
+                                             n_missing = function(x) sum(is.na(x)),
+                                             mean = function(x) mean(x, na.rm = TRUE),
+                                             sd = function(x) sd(x, na.rm = TRUE),
+                                             min = function(x) min(x, na.rm = TRUE),
+                                             max = function(x) max(x, na.rm = TRUE))) {
+  library(dplyr)
+  df_name <- deparse(substitute(df))
+  outcome_name <- deparse(substitute(outcome))
+            if(!is.data.frame(df)) { 
+              
+               stop(df_name, " is not a data frame")
+            } 
+  
+            if(!is.numeric(pull(df, {{outcome}}))) {
+              
+               stop(outcome_name, " is not numeric")
+            }
+  
+            if(is.numeric(pull(df, ...))) {
+              
+              warning(" Grouping variables are not categorical")
+            }
+ 
+  df %>% 
+    group_by(...) %>% 
+    summarise_at(vars({{outcome}}), .funs = .fun)
+}
 
 
-
-
-arguments- dataset, column name, grouping variable(s) as a list
-look into the function summarise_at
-
-?summarise_at
-```{r}
 library(tidyverse)
-View(mtcars)
+#test for df 
+descriptives(mean, tvhours, marital)
+
+#test for outcome numeric
+descriptives(gss_cat, marital, tvhours)
+
+#test for grouping variable categorical 
+descriptives(gss_cat, tvhours, age)
+
+
+```
+
+
+
+
+```{r old-attempts, eval=FALSE, include=FALSE}
+
+listof_fun <- list(
+  n = function(x) length(x),
+  n_valid = function(x) sum(!is.na(x)),
+  mean = function(x) mean(x),
+  sd = function(x) sd(x),
+  min = function(x) min(x),
+  max = function(x) max(x)
+)
+
+
+smry_function <- function(df, outcome, ..., .fun = list(n = function(x) length(x),
+                                             n_valid = function(x) sum(!is.na(x)),
+                                             mean = function(x) mean(x),
+                                             sd = function(x) sd(x),
+                                             min = function(x) min(x),
+                                             max = function(x) max(x))) {
+  df %>% 
+    group_by(...) %>% 
+    summarise_at(vars({{outcome}}), .funs = .fun)
+}
+
+smry_function(gss_cat, tvhours, marital, race, rincome, relig, .fun = list(mean, median))
+gss_cat
+
+#list
+f <- list(funs(
+  n, "total count", length(.),
+  n_valid, "nv", length(., na.rm = TRUE),
+  mean, "mean", mean(., na.rm = TRUE)))
+
+
+func <- function(data, 
+                 var,
+                 ...,
+                 .descriptive = list(funs(
+  n, "total count", length(.),
+  n_valid, "nv", length(., na.rm = TRUE),
+  mean, "mean", mean(., na.rm = TRUE)))) {
+  
+  dplyr::group_by(...) %>% 
+    summarise_at(vars({{var}}), .funs = .descriptive)
+}
+
+func(airquality, Solar.R, Day, .descriptive = list(mean))
 View(airquality)
+
+  # create a list of functions 
+f1 <- function(d,x) {
+  d %>% 
+  mutate(
+   n = length(x),
+   z = na.omit(x),
+   n_valid = length(z),
+   mean = mean(z),
+   sd = sd(z),
+   min = min(z),
+   max = max(z))
+   return(as.tibble(c(n = n, 
+                      n_valid =n_valid, 
+                      mean=mean,
+                      sd=sd,
+                      min=min,
+                      max=max)))
+}
+
+
+f1(airquality, "Solar.R")
 
 #total observations
 n <- airquality %>% 
@@ -55,37 +152,8 @@ n_missing <- airquality %>%
   select(Solar.R) %>% 
   summarise(sum(is.na(.)))
 
-### next step is to create a new object that is a list of all the above, use summarise_at to create the list of the functions we need
 
-##actual function is 3 lines of code
-
-function(data, result_var, ...) {
-  
-}
-
-
-
-
-
-
-#function
-df_numeric <- function(df) {
-    df[ ,map_lgl(df, is.numeric)]
-}  
 
 ```
 
-
-### Errors:  
-Embed an error if:  
-Anything other than a data frame is supplied as the first argument.  
-The provided column to summarize is not numeric.  
-### Warnings:  
-Embed a warning if:  
-Any of the grouping variable(s) are numeric (generally you would expect the grouping variable to be a categorical variable)  
-
-### Some guidance:  
-If you want to use {dplyr} you’ll need to use non-standard evaluation (NSE), so either something like !!enquo(group_var), where group_var is the formal argument of your function, or {{group_var}}. Also, dplyr::pull (together with NSE) will likely be helpful for checking types for warnings/errors.
-
-Alternatively, you might consider spliting the dataset by the grouping variable, then looping over each split to apply the function(s) supplied.
 
