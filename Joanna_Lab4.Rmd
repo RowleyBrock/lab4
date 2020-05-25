@@ -30,29 +30,22 @@ However, the function should be flexible so it can take any function(s) as its i
 
 ```{r}
 
-listof_fun <- list(
-  n = function(x) length(x),
-  n_valid = function(x) sum(!is.na(x)),
-  mean = function(x) mean(x),
-  sd = function(x) sd(x),
-  min = function(x) min(x),
-  max = function(x) max(x)
-)
-
-
 smry_function <- function(df, outcome, ..., .fun = list(n = function(x) length(x),
                                              n_valid = function(x) sum(!is.na(x)),
-                                             mean = function(x) mean(x),
-                                             sd = function(x) sd(x),
-                                             min = function(x) min(x),
-                                             max = function(x) max(x))) {
+                                             mean1 = function(x) mean(x, na.rm = TRUE),
+                                             sd = function(x) sd(x, na.rm = TRUE),
+                                             min = function(x) min(x, na.rm = TRUE),
+                                             max = function(x) max(x, na.rm = TRUE))) {
+  library(dplyr)
   df %>% 
     group_by(...) %>% 
     summarise_at(vars({{outcome}}), .funs = .fun)
 }
 
-smry_function(gss_cat, tvhours, marital, race, rincome, relig, .fun = list(mean, median))
-gss_cat
+smry_function(gss_cat, tvhours, marital, race, rincome, relig)
+smry_function(gss_cat, tvhours, marital, .fun = list(mean, sd))
+smry_function(airquality, Solar.R, Month, .fun = list(mean))
+airquality
 
 ```
 
@@ -69,20 +62,58 @@ tmp_fun <- function(df, outcome, ..., .fun = list(n = function(x) length(x),
                                              sd = function(x) sd(x),
                                              min = function(x) min(x),
                                              max = function(x) max(x))) {
-            if(is.data.frame(df) == FALSE) { 
+            if(!is.data.frame(df)) { 
             stop("Object is not a data frame")
             } 
-            if(is.numeric(outcome) == FALSE) { 
-            stop("Outcome is not numeric")
+            if(!is.numeric(df$outcome)) {
+              stop("Outcome is not numeric")
             } 
   df %>% 
     group_by(...) %>% 
     summarise_at(vars({{outcome}}), .funs = .fun)
 }
 
+is.numeric(gss_cat$tvhours)
+
+tmp_fun(, tvhours, marital)
+
 # but something not working here
 
+
 ```
+
+```{r}
+
+
+tmp_fun1 <- function(df, outcome, ..., .fun = list(n = function(x) length(x),
+                                             n_valid = function(x) sum(!is.na(x)),
+                                             mean = function(x) mean(x),
+                                             sd = function(x) sd(x),
+                                             min = function(x) min(x),
+                                             max = function(x) max(x))) {
+            if(is.data.frame(df) == FALSE) { 
+            stop("Object is not a data frame")
+            } 
+            if(is.numeric(df$outcome) == FALSE) { 
+            stop("Outcome is not numeric")
+            } 
+            if(is.numeric(df$...) == TRUE) { 
+            warning("Grouping variables are not categorical")
+            } 
+  df %>% 
+    group_by(...) %>% 
+    summarise_at(vars({{outcome}}), .funs = .fun)
+}
+
+
+tmp_fun(gss_cat, tvhours, age)
+tmp_fun(airquality, Solar.R, Month)
+
+gss_cat
+
+
+```
+
 
 
 ### Warnings:  
