@@ -383,134 +383,330 @@ summary {
 * Minimum<br />
 * Maximum<br />
 However, the function should be flexible so it can take any function(s) as its input to summarize by, provided the function results in a single value (e.g., anything you could feed to dplyr::summarize). You’ll need an additional optional argument (should be the last argument in your function) that lists the function(s) to use in the summary. Hint: You’ll want to have this argument pre-populated with default functions.</p>
+<pre class="r"><code>smry_function &lt;- function(
+  df, outcome, ..., .fun = list(
+    n = function(x) length(x),
+    n_valid = function(x) sum(!is.na(x)),
+    n_missing = function(x) sum(is.na(x)),
+    mean = function(x) mean(x, na.rm = TRUE),
+    sd = function(x) sd(x, na.rm = TRUE),
+    min = function(x) min(x, na.rm = TRUE),
+    max = function(x) max(x, na.rm = TRUE))) {
+  df %&gt;% 
+    group_by(...) %&gt;% 
+    summarise_at(vars({{outcome}}), .funs = .fun)
+}
+
+#testing it out on 2 different datasets
+smry_function(iris, Sepal.Width, Species)</code></pre>
+<pre><code>## # A tibble: 3 x 8
+##   Species        n n_valid n_missing  mean    sd   min   max
+##   &lt;fct&gt;      &lt;int&gt;   &lt;int&gt;     &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1 setosa        50      50         0  3.43 0.379   2.3   4.4
+## 2 versicolor    50      50         0  2.77 0.314   2     3.4
+## 3 virginica     50      50         0  2.97 0.322   2.2   3.8</code></pre>
+<pre class="r"><code>smry_function(gss_cat, tvhours, relig, race)</code></pre>
+<pre><code>## Warning in min(x, na.rm = TRUE): no non-missing arguments to min; returning Inf
+
+## Warning in min(x, na.rm = TRUE): no non-missing arguments to min; returning Inf
+
+## Warning in min(x, na.rm = TRUE): no non-missing arguments to min; returning Inf</code></pre>
+<pre><code>## Warning in max(x, na.rm = TRUE): no non-missing arguments to max; returning -Inf
+
+## Warning in max(x, na.rm = TRUE): no non-missing arguments to max; returning -Inf
+
+## Warning in max(x, na.rm = TRUE): no non-missing arguments to max; returning -Inf</code></pre>
+<pre><code>## # A tibble: 44 x 9
+## # Groups:   relig [15]
+##    relig                 race      n n_valid n_missing   mean     sd   min   max
+##    &lt;fct&gt;                 &lt;fct&gt; &lt;int&gt;   &lt;int&gt;     &lt;int&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+##  1 No answer             Other    14       6         8   2.67  3.72      0    10
+##  2 No answer             Black    16      10         6   3.3   3.23      0    12
+##  3 No answer             White    63      31        32   2.55  1.43      0     5
+##  4 Don't know            Other     3       1         2   0    NA         0     0
+##  5 Don't know            Black     3       1         2  24    NA        24    24
+##  6 Don't know            White     9       6         3   2.17  3.87      0    10
+##  7 Inter-nondenominatio… Other     2       0         2 NaN    NA       Inf  -Inf
+##  8 Inter-nondenominatio… Black    29      17        12   3.29  3.24      0    14
+##  9 Inter-nondenominatio… White    78      37        41   2.68  2.38      0    10
+## 10 Native american       Other    16       8         8   1.75  0.886     0     3
+## # … with 34 more rows</code></pre>
+<pre class="r"><code>listof_fun &lt;- list(
+  n = function(x) length(x),
+  n_valid = function(x) sum(!is.na(x)),
+  n_missing = function(x) sum(is.na(x)),
+  mean = function(x) mean(x, na.rm = TRUE),
+  sd = function(x) sd(x, na.rm = TRUE),
+  min = function(x) min(x, na.rm = TRUE),
+  max = function(x) max(x, na.rm = TRUE)
+)
+
+smry_function2 &lt;- function(df, outcome, ..., .fun = listof_fun
+) {
+  df %&gt;% 
+    group_by(...) %&gt;% 
+    summarise_at(vars({{outcome}}), .funs = .fun)
+}
+
+#testing it out on 2 different datasets
+smry_function2(iris, Sepal.Width, Species)</code></pre>
+<pre><code>## # A tibble: 3 x 8
+##   Species        n n_valid n_missing  mean    sd   min   max
+##   &lt;fct&gt;      &lt;int&gt;   &lt;int&gt;     &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1 setosa        50      50         0  3.43 0.379   2.3   4.4
+## 2 versicolor    50      50         0  2.77 0.314   2     3.4
+## 3 virginica     50      50         0  2.97 0.322   2.2   3.8</code></pre>
+<pre class="r"><code>smry_function2(airquality, Wind, Ozone, Month)</code></pre>
+<pre><code>## # A tibble: 104 x 9
+## # Groups:   Ozone [68]
+##    Ozone Month     n n_valid n_missing  mean     sd   min   max
+##    &lt;int&gt; &lt;int&gt; &lt;int&gt;   &lt;int&gt;     &lt;int&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+##  1     1     5     1       1         0   9.7 NA       9.7   9.7
+##  2     4     5     1       1         0   9.7 NA       9.7   9.7
+##  3     6     5     1       1         0  18.4 NA      18.4  18.4
+##  4     7     5     1       1         0   6.9 NA       6.9   6.9
+##  5     7     7     1       1         0  14.3 NA      14.3  14.3
+##  6     7     9     1       1         0  10.3 NA      10.3  10.3
+##  7     8     5     1       1         0  20.1 NA      20.1  20.1
+##  8     9     8     2       2         0  14.0  0.354  13.8  14.3
+##  9     9     9     1       1         0  10.9 NA      10.9  10.9
+## 10    10     7     1       1         0  14.3 NA      14.3  14.3
+## # … with 94 more rows</code></pre>
 <div id="errors" class="section level3">
 <h3>Errors:</h3>
 <p>Embed an error if:<br />
 Anything other than a data frame is supplied as the first argument.<br />
-The provided column to summarize is not numeric.<br />
-### Warnings:<br />
-Embed a warning if:<br />
+The provided column to summarize is not numeric.</p>
+</div>
+<div id="warnings" class="section level3">
+<h3>Warnings:</h3>
+<p>Embed a warning if:<br />
 Any of the grouping variable(s) are numeric (generally you would expect the grouping variable to be a categorical variable)</p>
 </div>
-<div id="some-guidance" class="section level3">
-<h3>Some guidance:</h3>
-<p>If you want to use {dplyr} you’ll need to use non-standard evaluation (NSE), so either something like !!enquo(group_var), where group_var is the formal argument of your function, or {{group_var}}. Also, dplyr::pull (together with NSE) will likely be helpful for checking types for warnings/errors.</p>
-<p>Alternatively, you might consider spliting the dataset by the grouping variable, then looping over each split to apply the function(s) supplied.</p>
 </div>
-<div id="sample-output" class="section level3">
-<h3>Sample output:</h3>
-<p>Below are some examples of how the function should work. Note that I have purposefully given my function a poor name, but you should think carefully about the name of your function.</p>
-Examples with {dplyr}:
-<p>
-<strong>Examples with {dplyr}:</strong>
-</p>
-<pre class="r"><code>f(iris, Sepal.Width, Species)</code></pre>
-<pre><code>## # A tibble: 3 x 8
-##   Species        n n_valid n_miss  mean        sd      min   max
-##   &lt;fct&gt;      &lt;int&gt;   &lt;int&gt;  &lt;int&gt; &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;
-## 1 setosa        50      50      0 3.428 0.3790644 2.300000   4.4
-## 2 versicolor    50      50      0 2.77  0.3137983 2          3.4
-## 3 virginica     50      50      0 2.974 0.3224966 2.2        3.8</code></pre>
-<pre class="r"><code>f(airquality, Ozone, Month)</code></pre>
-<pre><code>## Warning in f(airquality, Ozone, Month): This is a warning about a numeric
-## grouping variable. Make your message more informative.</code></pre>
-<pre><code>## # A tibble: 5 x 8
-##   Month     n n_valid n_miss     mean       sd   min   max
-##   &lt;int&gt; &lt;int&gt;   &lt;int&gt;  &lt;int&gt;    &lt;dbl&gt;    &lt;dbl&gt; &lt;int&gt; &lt;int&gt;
-## 1     5    31      26      5 23.61538 22.22445     1   115
-## 2     6    30       9     21 29.44444 18.20790    12    71
-## 3     7    31      26      5 59.11538 31.63584     7   135
-## 4     8    31      26      5 59.96154 39.68121     9   168
-## 5     9    30      29      1 31.44828 24.14182     7    96</code></pre>
-<pre class="r"><code>airquality %&gt;%
-    mutate(Month = as.factor(Month)) %&gt;%
-    f(Ozone, Month)</code></pre>
-<pre><code>## # A tibble: 5 x 8
-##   Month     n n_valid n_miss     mean       sd   min   max
-##   &lt;fct&gt; &lt;int&gt;   &lt;int&gt;  &lt;int&gt;    &lt;dbl&gt;    &lt;dbl&gt; &lt;int&gt; &lt;int&gt;
-## 1 5        31      26      5 23.61538 22.22445     1   115
-## 2 6        30       9     21 29.44444 18.20790    12    71
-## 3 7        31      26      5 59.11538 31.63584     7   135
-## 4 8        31      26      5 59.96154 39.68121     9   168
-## 5 9        30      29      1 31.44828 24.14182     7    96</code></pre>
-<pre class="r"><code>f(iris$Sepal.Width, iris$Species)</code></pre>
-<pre><code>## Error in f(iris$Sepal.Width, iris$Species): This is a non-df error. Make your message more informative</code></pre>
-<pre class="r"><code>mtcars2 &lt;- mtcars %&gt;%
-  mutate_at(.vars = vars(cyl, vs, am, gear, carb),
-            .funs = as.factor)
+<div id="generic-errors-and-warnings" class="section level2">
+<h2>Generic Errors and Warnings:</h2>
+<p>Our warning message for whether grouping variables were categorical does NOT work when you supply more than one grouping variable, see test below.</p>
+<pre class="r"><code>check_numeric &lt;- function(df, ...){
+  colums &lt;- select(df, ...)
+  any(map_lgl(colums, is.numeric))
+}
 
-f(mtcars2, mpg, cyl, vs, am)</code></pre>
-<pre><code>## # A tibble: 7 x 10
-## # Groups:   cyl, vs [5]
-##   cyl   vs    am        n n_valid n_miss     mean         sd   min   max
-##   &lt;fct&gt; &lt;fct&gt; &lt;fct&gt; &lt;int&gt;   &lt;int&gt;  &lt;int&gt;    &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
-## 1 4     0     1         1       1      0 26       NA          26    26  
-## 2 4     1     0         3       3      0 22.9      1.452584   21.5  24.4
-## 3 4     1     1         7       7      0 28.37143  4.757701   21.4  33.9
-## 4 6     0     1         3       3      0 20.56667  0.7505553  19.7  21  
-## 5 6     1     0         4       4      0 19.125    1.631717   17.8  21.4
-## 6 8     0     0        12      12      0 15.05     2.774396   10.4  19.2
-## 7 8     0     1         2       2      0 15.4      0.5656854  15    15.8</code></pre>
-<pre class="r"><code>f(mtcars2, mpg, cyl, vs, am, .funs = median)</code></pre>
-<pre><code>## # A tibble: 7 x 4
-## # Groups:   cyl, vs [5]
-##   cyl   vs    am       mpg
-##   &lt;fct&gt; &lt;fct&gt; &lt;fct&gt;  &lt;dbl&gt;
-## 1 4     0     1     26    
-## 2 4     1     0     22.8  
-## 3 4     1     1     30.4  
-## 4 6     0     1     21    
-## 5 6     1     0     18.650
-## 6 8     0     0     15.2  
-## 7 8     0     1     15.4</code></pre>
-<pre class="r"><code>f(mtcars2, mpg, cyl, vs, am, .funs = list(~median(.), 
-                                            ~quantile(., 0.2)))</code></pre>
-<pre><code>## # A tibble: 7 x 5
-## # Groups:   cyl, vs [5]
-##   cyl   vs    am    median quantile
-##   &lt;fct&gt; &lt;fct&gt; &lt;fct&gt;  &lt;dbl&gt;    &lt;dbl&gt;
-## 1 4     0     1     26        26   
-## 2 4     1     0     22.8      22.02
-## 3 4     1     1     30.4      23.7 
-## 4 6     0     1     21        20.22
-## 5 6     1     0     18.650    17.98
-## 6 8     0     0     15.2      13.5 
-## 7 8     0     1     15.4      15.16</code></pre>
-<pre class="r"><code>f(mtcars2, mpg, cyl, vs, am, .funs = list(med = ~median(.), 
-                                          q20 = ~quantile(., 0.2)))</code></pre>
-<pre><code>## # A tibble: 7 x 5
-## # Groups:   cyl, vs [5]
-##   cyl   vs    am       med   q20
-##   &lt;fct&gt; &lt;fct&gt; &lt;fct&gt;  &lt;dbl&gt; &lt;dbl&gt;
-## 1 4     0     1     26     26   
-## 2 4     1     0     22.8   22.02
-## 3 4     1     1     30.4   23.7 
-## 4 6     0     1     21     20.22
-## 5 6     1     0     18.650 17.98
-## 6 8     0     0     15.2   13.5 
-## 7 8     0     1     15.4   15.16</code></pre>
-<p>
-<strong>Examples without {dplyr}</strong>
-</p>
-<p>
-Note the syntax will look slightly different (because you’re not using NSE) but it all should still work basically the same.
-</p>
-<pre class="r"><code>f2(mtcars2, &quot;mpg&quot;, &quot;cyl&quot;, &quot;vs&quot;, &quot;am&quot;)</code></pre>
-<pre><code>##   cyl vs am  n n_valid n_miss     mean        sd  min  max
-## 1   8  0  0 12      12      0 15.05000 2.7743959 10.4 19.2
-## 2   4  1  0  3       3      0 22.90000 1.4525839 21.5 24.4
-## 3   6  1  0  4       4      0 19.12500 1.6317169 17.8 21.4
-## 4   4  0  1  1       1      0 26.00000        NA 26.0 26.0
-## 5   6  0  1  3       3      0 20.56667 0.7505553 19.7 21.0
-## 6   8  0  1  2       2      0 15.40000 0.5656854 15.0 15.8
-## 7   4  1  1  7       7      0 28.37143 4.7577005 21.4 33.9</code></pre>
-<pre class="r"><code>f2(iris, &quot;Sepal.Width&quot;, &quot;Species&quot;, .funs = list(med = median,
-                                                q20 = function(x) quantile(x, 0.2)))</code></pre>
-<pre><code>##      Species med q20
-## 1     setosa 3.4 3.1
-## 2 versicolor 2.8 2.5
-## 3  virginica 3.0 2.7</code></pre>
+smry_function &lt;- function(
+  df, outcome, ..., .fun = list(
+    n = function(x) length(x),
+    n_valid = function(x) sum(!is.na(x)),
+    n_missing = function(x) sum(is.na(x)),
+    mean = function(x) mean(x, na.rm = TRUE),
+    sd = function(x) sd(x, na.rm = TRUE),
+    min = function(x) min(x, na.rm = TRUE),
+    max = function(x) max(x, na.rm = TRUE))) {
+            if (!is.data.frame(df)) { 
+            stop(&quot;Object is not a data frame&quot;)
+            } 
+            if (!is.numeric(pull(df, {{outcome}}))) {
+            stop(&quot;Outcome is not numeric&quot;)
+            }
+            if (check_numeric(df, ...)) {
+            warning(&quot;Grouping variables are not categorical&quot;)
+            }
+  df %&gt;% 
+    group_by(...) %&gt;% 
+    summarise_at(vars({{outcome}}), .funs = .fun)
+}
+
+#test for df 
+smry_function(smry_function, tvhours, marital)</code></pre>
+<pre><code>## Error in smry_function(smry_function, tvhours, marital): Object is not a data frame</code></pre>
+<pre class="r"><code>#test for outcome numeric
+smry_function(gss_cat, marital, tvhours)</code></pre>
+<pre><code>## Error in smry_function(gss_cat, marital, tvhours): Outcome is not numeric</code></pre>
+<pre class="r"><code>#test for grouping variable categorical 
+smry_function(gss_cat, tvhours, age)</code></pre>
+<pre><code>## Warning in smry_function(gss_cat, tvhours, age): Grouping variables are not
+## categorical</code></pre>
+<pre><code>## # A tibble: 73 x 8
+##      age     n n_valid n_missing  mean    sd   min   max
+##    &lt;int&gt; &lt;int&gt;   &lt;int&gt;     &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt; &lt;int&gt;
+##  1    18    91      46        45  2.43  2.31     0    13
+##  2    19   249     135       114  2.84  2.71     0    17
+##  3    20   251     141       110  2.66  2.30     0    12
+##  4    21   278     157       121  3.20  3.17     0    24
+##  5    22   298     185       113  3.03  2.21     0    12
+##  6    23   361     184       177  2.90  2.81     0    20
+##  7    24   344     178       166  2.88  2.80     0    18
+##  8    25   396     205       191  2.62  2.53     0    20
+##  9    26   400     196       204  2.43  2.10     0    12
+## 10    27   385     206       179  2.95  3.19     0    24
+## # … with 63 more rows</code></pre>
+<pre class="r"><code># test for grouping variable categorical (multiple grouping variables) 
+smry_function(gss_cat, tvhours, age, year)</code></pre>
+<pre><code>## Warning in smry_function(gss_cat, tvhours, age, year): Grouping variables are
+## not categorical</code></pre>
+<pre><code>## Warning in min(x, na.rm = TRUE): no non-missing arguments to min; returning Inf
+
+## Warning in min(x, na.rm = TRUE): no non-missing arguments to min; returning Inf
+
+## Warning in min(x, na.rm = TRUE): no non-missing arguments to min; returning Inf</code></pre>
+<pre><code>## Warning in max(x, na.rm = TRUE): no non-missing arguments to max; returning -Inf
+
+## Warning in max(x, na.rm = TRUE): no non-missing arguments to max; returning -Inf
+
+## Warning in max(x, na.rm = TRUE): no non-missing arguments to max; returning -Inf</code></pre>
+<pre><code>## # A tibble: 584 x 9
+## # Groups:   age [73]
+##      age  year     n n_valid n_missing   mean    sd   min   max
+##    &lt;int&gt; &lt;int&gt; &lt;int&gt;   &lt;int&gt;     &lt;int&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+##  1    18  2000     7       3         4   1.67  2.08     0     4
+##  2    18  2002     4       0         4 NaN    NA      Inf  -Inf
+##  3    18  2004    27       7        20   1.86  1.46     0     3
+##  4    18  2006    19       8        11   2.12  2.17     0     7
+##  5    18  2008     6       4         2   2.5   1.29     1     4
+##  6    18  2010    10       8         2   3.75  4.17     0    13
+##  7    18  2012    12      10         2   2.4   1.35     1     5
+##  8    18  2014     6       6         0   2.17  2.14     0     5
+##  9    19  2000    44      28        16   2.61  2.62     0    10
+## 10    19  2002    25       8        17   2.38  1.77     1     5
+## # … with 574 more rows</code></pre>
+<pre class="r"><code>smry_function(airquality, Wind, Ozone, Month)</code></pre>
+<pre><code>## Warning in smry_function(airquality, Wind, Ozone, Month): Grouping variables are
+## not categorical</code></pre>
+<pre><code>## # A tibble: 104 x 9
+## # Groups:   Ozone [68]
+##    Ozone Month     n n_valid n_missing  mean     sd   min   max
+##    &lt;int&gt; &lt;int&gt; &lt;int&gt;   &lt;int&gt;     &lt;int&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+##  1     1     5     1       1         0   9.7 NA       9.7   9.7
+##  2     4     5     1       1         0   9.7 NA       9.7   9.7
+##  3     6     5     1       1         0  18.4 NA      18.4  18.4
+##  4     7     5     1       1         0   6.9 NA       6.9   6.9
+##  5     7     7     1       1         0  14.3 NA      14.3  14.3
+##  6     7     9     1       1         0  10.3 NA      10.3  10.3
+##  7     8     5     1       1         0  20.1 NA      20.1  20.1
+##  8     9     8     2       2         0  14.0  0.354  13.8  14.3
+##  9     9     9     1       1         0  10.9 NA      10.9  10.9
+## 10    10     7     1       1         0  14.3 NA      14.3  14.3
+## # … with 94 more rows</code></pre>
+<pre class="r"><code>smry_function2(gss_cat, tvhours, age, year)</code></pre>
+<pre><code>## Warning in min(x, na.rm = TRUE): no non-missing arguments to min; returning Inf</code></pre>
+<pre><code>## Warning in min(x, na.rm = TRUE): no non-missing arguments to min; returning Inf
+
+## Warning in min(x, na.rm = TRUE): no non-missing arguments to min; returning Inf</code></pre>
+<pre><code>## Warning in max(x, na.rm = TRUE): no non-missing arguments to max; returning -Inf
+
+## Warning in max(x, na.rm = TRUE): no non-missing arguments to max; returning -Inf
+
+## Warning in max(x, na.rm = TRUE): no non-missing arguments to max; returning -Inf</code></pre>
+<pre><code>## # A tibble: 584 x 9
+## # Groups:   age [73]
+##      age  year     n n_valid n_missing   mean    sd   min   max
+##    &lt;int&gt; &lt;int&gt; &lt;int&gt;   &lt;int&gt;     &lt;int&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+##  1    18  2000     7       3         4   1.67  2.08     0     4
+##  2    18  2002     4       0         4 NaN    NA      Inf  -Inf
+##  3    18  2004    27       7        20   1.86  1.46     0     3
+##  4    18  2006    19       8        11   2.12  2.17     0     7
+##  5    18  2008     6       4         2   2.5   1.29     1     4
+##  6    18  2010    10       8         2   3.75  4.17     0    13
+##  7    18  2012    12      10         2   2.4   1.35     1     5
+##  8    18  2014     6       6         0   2.17  2.14     0     5
+##  9    19  2000    44      28        16   2.61  2.62     0    10
+## 10    19  2002    25       8        17   2.38  1.77     1     5
+## # … with 574 more rows</code></pre>
+<pre class="r"><code>smry_function2(airquality, Wind, Ozone, Month)</code></pre>
+<pre><code>## # A tibble: 104 x 9
+## # Groups:   Ozone [68]
+##    Ozone Month     n n_valid n_missing  mean     sd   min   max
+##    &lt;int&gt; &lt;int&gt; &lt;int&gt;   &lt;int&gt;     &lt;int&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+##  1     1     5     1       1         0   9.7 NA       9.7   9.7
+##  2     4     5     1       1         0   9.7 NA       9.7   9.7
+##  3     6     5     1       1         0  18.4 NA      18.4  18.4
+##  4     7     5     1       1         0   6.9 NA       6.9   6.9
+##  5     7     7     1       1         0  14.3 NA      14.3  14.3
+##  6     7     9     1       1         0  10.3 NA      10.3  10.3
+##  7     8     5     1       1         0  20.1 NA      20.1  20.1
+##  8     9     8     2       2         0  14.0  0.354  13.8  14.3
+##  9     9     9     1       1         0  10.9 NA      10.9  10.9
+## 10    10     7     1       1         0  14.3 NA      14.3  14.3
+## # … with 94 more rows</code></pre>
 </div>
+<div id="errors-and-warnings-customized" class="section level2">
+<h2>Errors and Warnings Customized:</h2>
+<p>Our attempt at customizing errors and warnings. We were able to get the data frame and is numeric error to print the correct names for df and outcome. Grouping variable prints correctly for 1 variable, but was NOT able to get the grouping variable printed correctly for multiple variables. Similar to above, if supplying more than 1 grouping variable, then the fuction does NOT work with warnings.</p>
+<pre class="r"><code>smry_function_custom &lt;- function(
+  df, outcome, ..., .fun = list(
+    n = function(x) length(x),
+    n_valid = function(x) sum(!is.na(x)),
+    n_missing = function(x) sum(is.na(x)),
+    mean = function(x) mean(x, na.rm = TRUE),
+    sd = function(x) sd(x, na.rm = TRUE),
+    min = function(x) min(x, na.rm = TRUE),
+    max = function(x) max(x, na.rm = TRUE))) {
+  df_name &lt;- deparse(substitute(df))
+  outcome_name &lt;- deparse(substitute(outcome))
+  grouping_name &lt;- sapply(substitute(...()), deparse)
+            if (!is.data.frame(df)) { 
+            stop(df_name, &quot; is not a data frame&quot;)
+            } 
+            if (!is.numeric(pull(df, {{outcome}}))) {
+            stop(outcome_name, &quot; is not numeric&quot;)
+            }
+            if (check_numeric(df, ...)) {
+            warning(grouping_name, &quot; grouping variables are not categorical&quot;)
+            }
+  df %&gt;% 
+    group_by(...) %&gt;% 
+    summarise_at(vars({{outcome}}), .funs = .fun)
+}
+
+#test for df 
+smry_function_custom(smry_function, tvhours, marital)</code></pre>
+<pre><code>## Error in smry_function_custom(smry_function, tvhours, marital): smry_function is not a data frame</code></pre>
+<pre class="r"><code>#test for outcome numeric
+smry_function_custom(gss_cat, marital, tvhours)</code></pre>
+<pre><code>## Error in smry_function_custom(gss_cat, marital, tvhours): marital is not numeric</code></pre>
+<pre class="r"><code>#test for grouping variable categorical, 1 variable, works and produces correct warning! 
+smry_function_custom(gss_cat, tvhours, year)</code></pre>
+<pre><code>## Warning in smry_function_custom(gss_cat, tvhours, year): year grouping variables
+## are not categorical</code></pre>
+<pre><code>## # A tibble: 8 x 8
+##    year     n n_valid n_missing  mean    sd   min   max
+##   &lt;int&gt; &lt;int&gt;   &lt;int&gt;     &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt; &lt;int&gt;
+## 1  2000  2817    1829       988  2.97  2.58     0    24
+## 2  2002  2765     905      1860  2.98  2.36     0    24
+## 3  2004  2812     899      1913  2.87  2.62     0    20
+## 4  2006  4510    1987      2523  2.94  2.29     0    24
+## 5  2008  2023    1324       699  2.98  2.66     0    24
+## 6  2010  2044    1426       618  3.03  2.77     0    24
+## 7  2012  1974    1298       676  3.09  2.87     0    24
+## 8  2014  2538    1669       869  2.98  2.59     0    24</code></pre>
+<pre class="r"><code>#test for grouping variable categorical, multiple variables (does NOT work) 
+smry_function_custom(gss_cat, tvhours, year, age)</code></pre>
+<pre><code>## Warning in smry_function_custom(gss_cat, tvhours, year, age): yearage grouping
+## variables are not categorical</code></pre>
+<pre><code>## Warning in min(x, na.rm = TRUE): no non-missing arguments to min; returning Inf
+
+## Warning in min(x, na.rm = TRUE): no non-missing arguments to min; returning Inf
+
+## Warning in min(x, na.rm = TRUE): no non-missing arguments to min; returning Inf</code></pre>
+<pre><code>## Warning in max(x, na.rm = TRUE): no non-missing arguments to max; returning -Inf
+
+## Warning in max(x, na.rm = TRUE): no non-missing arguments to max; returning -Inf
+
+## Warning in max(x, na.rm = TRUE): no non-missing arguments to max; returning -Inf</code></pre>
+<pre><code>## # A tibble: 584 x 9
+## # Groups:   year [8]
+##     year   age     n n_valid n_missing  mean    sd   min   max
+##    &lt;int&gt; &lt;int&gt; &lt;int&gt;   &lt;int&gt;     &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+##  1  2000    18     7       3         4  1.67  2.08     0     4
+##  2  2000    19    44      28        16  2.61  2.62     0    10
+##  3  2000    20    40      23        17  2.65  1.92     1    10
+##  4  2000    21    37      23        14  2.96  1.26     0     5
+##  5  2000    22    39      31         8  3.61  2.67     0    12
+##  6  2000    23    48      30        18  2.33  1.71     0     8
+##  7  2000    24    52      34        18  3.32  2.51     1    10
+##  8  2000    25    53      33        20  2.97  3.04     0    14
+##  9  2000    26    58      33        25  2.70  2.56     0    12
+## 10  2000    27    47      32        15  2.03  1.51     0     6
+## # … with 574 more rows</code></pre>
 </div>
 </div>
 
